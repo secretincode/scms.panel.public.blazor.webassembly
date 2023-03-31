@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Microsoft Login</title>
+    <script>
+        function pageLoaded() {
+            localStorage.removeItem("external_login_access_token");
+
+            const searchParams = new URL(window.location.href).searchParams;
+            const error = searchParams.get("error");
+            const code = searchParams.get("code");
+
+            if (error != null || code == null) {
+                localStorage.setItem("external_login_access_token", "error");
+            } else {
+                localStorage.setItem("external_login_access_token", code);
+            }
+
+            window.open('', '_self', '').close();
+            return false;
+        }
+    </script>
+</head>
+<body onload="pageLoaded()">
+    Microsoft Login
+</body>
+</html>

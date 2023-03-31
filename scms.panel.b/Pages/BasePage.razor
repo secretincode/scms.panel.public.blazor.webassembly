@@ -1,0 +1,10 @@
+﻿@using scms.panel.b.Abstractions;
+@inject IAuthService _authService
+
+@code {
+    protected async override void OnInitialized()
+    {
+        base.OnInitialized();
+        await _authService.StateProviderCheckAsync();
+    }
+}

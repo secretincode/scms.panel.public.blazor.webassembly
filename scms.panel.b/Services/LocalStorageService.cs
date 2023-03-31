@@ -1,0 +1,45 @@
+﻿using Microsoft.JSInterop;
+using scms.panel.b.Abstractions;
+using System.Text.Json;
+
+namespace scms.panel.b.Services;
+
+public class LocalStorageService : ILocalStorageService
+{
+    private IJSRuntime _jsRuntime;
+
+    public LocalStorageService(IJSRuntime jsRuntime)
+    {
+        _jsRuntime = jsRuntime;
+    }
+
+    public async Task<T> GetItem<T>(string key)
+    {
+        var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", key);
+
+        if (json == null)
+            return default;
+
+        return JsonSerializer.Deserialize<T>(json);
+    }
+
+    public async Task SetItem<T>(string key, T value)
+    {
+        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, JsonSerializer.Serialize(value));
+    }
+
+    public async Task<object> GetItemSigle<T>(string key)
+    {
+        var value = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", key);
+
+        if (value == null)
+            return default;
+
+        return value;
+    }
+
+    public async Task RemoveItem(string key)
+    {
+        await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);
+    }
+}

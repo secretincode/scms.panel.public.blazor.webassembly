@@ -1,0 +1,78 @@
+﻿@page "/Products"
+@inherits BasePage
+@using Microsoft.AspNetCore.Authorization;
+@attribute [Authorize]
+@using scms.panel.b.Abstractions;
+@using scms.panel.b.Models.Products;
+@inject HttpClient Http
+@inject IJwtHttpService _httpService
+
+<PageTitle>Products</PageTitle>
+
+@if (productResponse == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Stock</th>
+                <th>Price</th>
+                <th>CreateDate</th>
+                <th>UpdateDate</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in productResponse.Products)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Name</td>
+                    <td>@p.Stock</td>
+                    <td>@p.Price</td>
+                    <td>@p.CreatedDate?.ToShortDateString()</td>
+                    <td>@p.UpdatedDate?.ToShortDateString()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger mt-3 mb-0">@error</div>
+    }
+}
+
+@code {
+    private ProductResponse? productResponse;
+
+    string error = "";
+
+    private int page = 0;
+
+    private int size = 5;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    async Task LoadData()
+    {
+        error = "";
+        try
+        {
+            productResponse = await _httpService.Get<ProductResponse>($"https://localhost:7035/api/Product/Get?page={page}&size={size}");
+        }
+        catch (Exception ex)
+        {
+            productResponse = new();
+            error = ex.Message;
+        }
+
+        //this.StateHasChanged();
+    }
+}

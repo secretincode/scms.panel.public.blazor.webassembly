@@ -1,0 +1,222 @@
+﻿@page "/Login"
+@inherits BasePage
+@using Blazored.Modal.Services
+@using scms.panel.b.Abstractions
+@using scms.panel.b.Abstractions.Helper;
+@using scms.panel.b.Enums;
+@using scms.panel.b.Models.Users
+@inject ILocalStorageService _localStorageService
+@inject IAuthService _authService
+@inject NavigationManager _navigationManager
+@inject IHelper _helper
+@inject IConfiguration _configuration
+@inject IExternalLoginUrlService _externalLoginUrlService
+@*using scms.panel.b.Services.Helper;@inject IModalService modal*@
+@inject IJSRuntime JS
+
+<div class="col-md-6 offset-md-3 mt-5">
+    <div class="card">
+        <h4 class="card-header">Secret In Code Jwt ile İç ve Dış kaynak Giriş Örneği</h4>
+        <div class="card-body">
+            <EditForm Model="@model" OnValidSubmit="LoginAsync">
+                <DataAnnotationsValidator />
+                <div class="form-group">
+                    <label>Username</label>
+                    <InputText @bind-Value="model.UserNameOrEmail" class="form-control" />
+                    <ValidationMessage For="@(() => model.UserNameOrEmail)" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <InputText @bind-Value="model.Password" type="password" class="form-control" />
+                    <ValidationMessage For="@(() => model.Password)" />
+                </div>
+                <button class="btn btn-primary">
+                    @if (loading)
+                    {
+                        <span class="spinner-border spinner-border-sm mr-1"></span>
+                    }
+                    Login
+                </button>
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger mt-3 mb-0">@error</div>
+                }
+            </EditForm>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-discord" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Discord))">
+                    <span class="fa fa-discord"></span> <b>Sign in with Discord</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-facebook" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Facebook))">
+                    <span class="fa fa-facebook"></span> <b>Sign in with Facebook</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-github" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.GitHub))">
+                    <span class="fa fa-github"></span> <b>Sign in with GitHub</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-google" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Google))">
+                    <span class="fa fa-google"></span> <b>Sign in with Google</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-instagram" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Instagram))">
+                    <span class="fa fa-instagram"></span> <b>Sign in with Instagram</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-linkedin" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.LinkedIn))">
+                    <span class="fa fa-linkedin"></span> <b>Sign in with Linked In</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-microsoft" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Microsoft))">
+                    <span class="fa fa-microsoft"></span> <b>Sign in with Microsoft</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-reddit" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Reddit))">
+                    <span class="fa fa-reddit"></span> <b>Sign in with Reddit</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-twitch" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Twitch))">
+                    <span class="fa fa-twitch"></span> <b>Sign in with Twitch</b>
+                </a>
+            </div>
+            <div class="col-xl-6 col-md-8 col-12">
+                <a href="javascript:void(0)" class="btn btn-block btn-social btn-twitter" @onclick="@(()=>LoginExternalAsync(ExternalLoginType.Twitter))">
+                    <span class="fa fa-twitter"></span> <b>Sign in with Twitter</b>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] public IModalService Modal { get; set; }
+
+    private UserLogin model = new UserLogin();
+    private bool loading;
+    private string error;
+    private ExternalLoginType externalType;
+    private object? externalToken;
+    private object? externalTokenState;
+    private System.Timers.Timer timer;
+    private int timerTick = 1;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        //await JS.InvokeVoidAsync("console.log", await _authService.User?.Identity);
+        //await JS.InvokeVoidAsync("console.log", authState.AuthStateUserAsync().User?.Identity?.IsAuthenticated);
+    }
+
+    private async void LoginAsync()
+    {
+        await _localStorageService.RemoveItem("external_login_access_token");
+        await _localStorageService.RemoveItem("external_login_access_token_state");
+        error = "";
+        loading = true;
+        this.StateHasChanged();
+        try
+        {
+            await _authService.Login(model.UserNameOrEmail, model.Password);
+            _navigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+
+        loading = false;
+        this.StateHasChanged();
+    }
+
+    private async void LoginExternalAsync(ExternalLoginType type)
+    {
+        error = "";
+        externalType = type;
+
+        await _localStorageService.RemoveItem("external_login_access_token");
+        await _localStorageService.RemoveItem("external_login_access_token_state");
+        string? url = _externalLoginUrlService.CreateAndGetUrl(type);
+        if (string.IsNullOrEmpty(url) || url == "?") {
+            error = "İstek urlsinde hata.";
+            this.StateHasChanged();
+            return;
+        }
+
+        await JS.InvokeVoidAsync("fncExternalLoginShow", url);
+        StartTimer();
+    }
+
+    [JSInvokable]
+    public async void LoginExternalResponseAsync()
+    {
+        loading = true;
+        this.StateHasChanged();
+        try
+        {
+            await _authService.ExternalLoginAsync(externalType, externalToken?.ToString(), externalTokenState?.ToString());
+            _navigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+
+        loading = false;
+        this.StateHasChanged();
+    }
+
+    //Timer işlevi geçici bir çözümdür. Bunun yerine signalr eklenecek.
+    public async void StartTimer()
+    {
+        await _localStorageService.RemoveItem("external_login_access_token");
+        timerTick = 1;
+        timer = new System.Timers.Timer(1000);
+        timer.Elapsed += CountDownTimer;
+        timer.Enabled = true;
+        timer.Start();
+    }
+
+    public void StopTimer()
+    {
+        timer.Enabled = false;
+        timer.Stop();
+        timerTick = 1;
+    }
+
+    public async void CountDownTimer(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        timer.Enabled = false;
+        externalToken = await _localStorageService.GetItemSigle<string>("external_login_access_token");
+        externalTokenState = await _localStorageService.GetItemSigle<string>("external_login_access_token_state");
+
+        await this.JS.InvokeVoidAsync("ConsoleLog", "tick:" + timerTick);
+        if (externalToken != null)
+        {
+            StopTimer();
+            await _localStorageService.RemoveItem("external_login_access_token");
+            await _localStorageService.RemoveItem("external_login_access_token_state");
+            LoginExternalResponseAsync();
+            return;
+        }
+
+        if (timerTick > 19)
+        {
+            StopTimer();
+            error = "time out";
+            await _localStorageService.RemoveItem("external_login_access_token");
+            await _localStorageService.RemoveItem("external_login_access_token_state");
+            this.StateHasChanged();
+            return;
+        }
+        timerTick++;
+        timer.Enabled = true;
+    }
+}
